@@ -9,59 +9,73 @@
 using namespace std;
 
 // GLOBAL VARIABLES
-
-// List of vertices (3D vectors)
-vector<Vector3f> vecv;
-
-// List of normals corresponding to vertices in 'vecv' (also 3D vectors)
-vector<Vector3f> vecn;
-
-// List of faces (indices into vecv and vecn)
-vector<vector<unsigned>> vecf;
-
-// Counter for changing light colour
-int lightCounter = 0;
-
-// Counter for changing position
-GLfloat positionCounterX = 0;
-GLfloat positionCounterY = 0;
+vector<Vector3f> vecv;         // Array of vertex coordinates
+vector<Vector3f> vecn;         // Array of normal vectors corresponding to vertices in 'vecv'
+vector<vector<unsigned>> vecf; // Array of faces (indices to vecv and vecn)
+int lightCounter(0);           // Counter for changing light colour
+GLfloat positionCounterX(0);   // Counter for changing x-position
+GLfloat positionCounterY(0);   // Counter for changing y-position
+bool rotateInd(false);         // If rotate toggle on, then true
+float angle(0.0);              // Initial angle of object
+GLfloat mtrx[16];
 
 
-// These are convenience functions which allow us to call OpenGL methods on Vec3d objects
+// Convenience functions to call OpenGL methods on Vec3d objects
 inline void glVertex(const Vector3f &a) 
 { glVertex3fv(a); }
-
 inline void glNormal(const Vector3f &a) 
 { glNormal3fv(a); }
 
 
-// This function is called whenever a "Normal" key press is received.
+// Rotate object with 16.666 ms interval
+void rotateObject(int value) {
+	if (angle >= 360.0) {
+		angle = -360.0;
+	}
+	else {
+		angle += 1.0;
+	}
+	glutPostRedisplay();
+	glutTimerFunc(16.666, rotateObject, 0); // 60 fps
+}
+
+
+// Receive "normal" key presses
 void keyboardFunc( unsigned char key, int x, int y )
 {
     switch ( key )
     {
     case 27: // Escape key
-        exit(0);
-        break;
-    case 'c':
-        // changes color of object to yellow
-				if (lightCounter != 20)
-					++lightCounter;
-				else
-					lightCounter = 0;
-        cout << "Colour modified" << endl;
-        break;
+      exit(0);
+      break;
+    case 'c': // Change colour of object
+			if (lightCounter != 3) {
+				++lightCounter;
+				glutPostRedisplay();
+			}
+			else {
+				lightCounter = 0;
+				glutPostRedisplay(); // update screen with changes
+			}
+			cout << "Colour modified." << endl;
+      break;
+		case 'r': // Toggle rotation of object
+			rotateInd = !rotateInd;
+			if (rotateInd) {
+				glutTimerFunc(100, rotateObject, 0);
+				cout << "Rotation enabled." << endl;
+			}
+			else {
+				cout << "Rotation disabled." << endl;
+			}
+			break;
     default:
-        cout << "Unhandled key entry: " << key << endl;
-				break;
+      cout << "Unhandled key entry: " << key << endl;
+			break; 
     }
-
-		// this will refresh the screen so that the user sees the color change
-		glutPostRedisplay();
 }
 
-// This function is called whenever a "Special" key press is received.
-// Right now, it's handling the arrow keys.
+// Receive special key presses
 void specialFunc( int key, int x, int y )
 {
     switch ( key )
@@ -86,22 +100,22 @@ void specialFunc( int key, int x, int y )
 			cout << "Unhandled key entry" << endl;
     }
 
-	// this will refresh the screen so that the user sees the light position
-    glutPostRedisplay();
+    glutPostRedisplay(); // update screen with changes
 }
 
-// This function is responsible for displaying the object.
+// This function is responsible for displaying the object
 void drawScene(void)
 {
 		int light = lightCounter;
-		double posX = positionCounterX;
-		double posY = positionCounterY;
+		GLfloat posX = positionCounterX;
+		GLfloat posY = positionCounterY;
 
     // Clear the rendering window
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Rotate the image
     glMatrixMode( GL_MODELVIEW );  // Current matrix affects objects positions
+		glPushMatrix();
     glLoadIdentity();              // Initialize to the identity
 
     // Position the camera at [0,0,5], looking at [0,0,0],
@@ -112,73 +126,69 @@ void drawScene(void)
 
     // Set material properties of object
 
-	// Here are some colors you might use - feel free to add more
-    GLfloat diffColors[21][4] = {{0.0, 0.0, 0.0, 1.0},
-																 {0.1, 0.1, 0.1, 1.0},
-                                 {0.2, 0.1, 0.2, 1.0},
-																 {0.3, 0.2, 0.3, 1.0},
-																 {0.3, 0.3, 0.4, 1.0},
-																 {0.4, 0.4, 0.5, 1.0},
-																 {0.5, 0.5, 0.6, 1.0},
-																 {0.6, 0.6, 0.7, 1.0},
-																 {0.7, 0.7, 0.6, 1.0},
-																 {0.8, 0.8, 0.5, 1.0},
-																 {0.9, 0.7, 0.4, 1.0},
+	  // Colour bank
+    GLfloat diffColors[21][4] = {{0.5, 0.5, 0.6, 1.0},
                                  {1.0, 0.6, 0.3, 1.0},
 																 {0.9, 0.5, 0.4, 1.0},
-																 {0.8, 0.4, 0.3, 1.0},
-																 {0.7, 0.3, 0.4, 1.0},
-																 {0.6, 0.3, 0.3, 1.0},
-																 {0.5, 0.4, 0.4, 1.0},
-																 {0.4, 0.3, 0.3, 1.0},
-																 {0.3, 0.2, 0.2, 1.0},
-																 {0.2, 0.1, 0.2, 1.0},
-                                 {0.1, 0.1 ,0.1, 1.0}};
+																 {0.4, 0.3, 0.3, 1.0}};
     
-	// Here we use the first color entry as the diffuse color
+	  // Use first colour entry as diffuse color
     glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, diffColors[light]);
 
-	// Define specular color and shininess
+	  // Define specular colour and shininess
     GLfloat specColor[] = {1.0, 1.0, 1.0, 1.0};
     GLfloat shininess[] = {100.0};
 
-	// Note that the specular color and shininess can stay constant
+	  // Note that specular colour and shininess are constant
     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specColor);
     glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
-  
+
     // Set light properties
-
-    // Light color (RGBA)
-    GLfloat Lt0diff[] = {1.0,1.0,1.0,1.0};
-
-    // Light position
-		GLfloat Lt0pos[] = {1.0 + posX, 1.0 + posY, 5.0, 1.0};
+    GLfloat Lt0diff[] = {1.0,1.0,1.0,1.0}; // light colour (RGBA)
+		GLfloat Lt0pos[] = {1.0 + posX, 1.0 + posY, 5.0, 1.0}; // light position
 
     glLightfv(GL_LIGHT0, GL_DIFFUSE, Lt0diff);
     glLightfv(GL_LIGHT0, GL_POSITION, Lt0pos);
 
-		// This GLUT method draws a teapot.  You should replace
-		// it with code which draws the object you loaded.
-		// glutSolidTeapot(1.0);
-		glBegin(GL_TRIANGLES);
-		for (unsigned int i = 0; i < vecv.size(); i++) {
-			glNormal3d(vecn[i][0], vecn[i][1], vecn[i][2]);
-			glVertex3d(vecv[i][0], vecv[i][1], vecv[i][2]);
+		if (rotateInd) {
+			glRotatef(angle, 0.0f, 1.0f, 0.0f);
+			glGetFloatv(GL_MODELVIEW_MATRIX, mtrx);
+
+			// Draw triangles from OBJ data
+			glBegin(GL_TRIANGLES);
+			for (unsigned int i = 0; i < vecf.size(); i++) {
+				glNormal3d(vecn[vecf[i][2] - 1][0], vecn[vecf[i][2] - 1][1], vecn[vecf[i][2] - 1][2]);
+				glVertex3d(vecv[vecf[i][0] - 1][0], vecv[vecf[i][0] - 1][1], vecv[vecf[i][0] - 1][2]);
+				glNormal3d(vecn[vecf[i][5] - 1][0], vecn[vecf[i][5] - 1][1], vecn[vecf[i][5] - 1][2]);
+				glVertex3d(vecv[vecf[i][3] - 1][0], vecv[vecf[i][3] - 1][1], vecv[vecf[i][3] - 1][2]);
+				glNormal3d(vecn[vecf[i][8] - 1][0], vecn[vecf[i][8] - 1][1], vecn[vecf[i][8] - 1][2]);
+				glVertex3d(vecv[vecf[i][6] - 1][0], vecv[vecf[i][6] - 1][1], vecv[vecf[i][6] - 1][2]);
+			}
+			glEnd();
 		}
-		glEnd(); 
-    
-    // Dump the image to the screen.
-    glutSwapBuffers();
+		else {
+			// Draw triangles from OBJ data
+			glBegin(GL_TRIANGLES);
+			for (unsigned int i = 0; i < vecf.size(); i++) {
+				glNormal3d(vecn[vecf[i][2] - 1][0], vecn[vecf[i][2] - 1][1], vecn[vecf[i][2] - 1][2]);
+				glVertex3d(vecv[vecf[i][0] - 1][0], vecv[vecf[i][0] - 1][1], vecv[vecf[i][0] - 1][2]);
+				glNormal3d(vecn[vecf[i][5] - 1][0], vecn[vecf[i][5] - 1][1], vecn[vecf[i][5] - 1][2]);
+				glVertex3d(vecv[vecf[i][3] - 1][0], vecv[vecf[i][3] - 1][1], vecv[vecf[i][3] - 1][2]);
+				glNormal3d(vecn[vecf[i][8] - 1][0], vecn[vecf[i][8] - 1][1], vecn[vecf[i][8] - 1][2]);
+				glVertex3d(vecv[vecf[i][6] - 1][0], vecv[vecf[i][6] - 1][1], vecv[vecf[i][6] - 1][2]);
+			}
+			glEnd();
+		}
 
-
+    glutSwapBuffers(); 		// dump image to the screen
 }
 
-// Initialize OpenGL's rendering modes
+// Initialize OpenGL rendering modes
 void initRendering()
 {
     glEnable(GL_DEPTH_TEST);   // Depth testing must be turned on
     glEnable(GL_LIGHTING);     // Enable lighting calculations
-    glEnable(GL_LIGHT0);       // Turn on light #0.
+    glEnable(GL_LIGHT0);       // Turn on light #0
 }
 
 // Called when the window is resized
@@ -199,6 +209,8 @@ void reshapeFunc(int w, int h)
     gluPerspective(50.0, 1.0, 1.0, 100.0);
 }
 
+
+// Prompt for user file input to render OBJ
 void loadInput()
 {
 
@@ -224,7 +236,7 @@ getFilename:
 		for (int i = 0; i < 7; i++)
 		{
 			getline(inf, buffer);
-			stringstream ss(buffer);
+			istringstream ss(buffer);
 			ss >> overflow;
 			if (overflow == "mtllib")
 			{
@@ -235,51 +247,62 @@ getFilename:
 		}
 		if (validCounter == 0)
 		{
-			cout << "File does not contain OBJ data. Please use another file." << endl;
+			cerr << "File does not contain OBJ data. Please use another file." << endl;
 			goto getFilename;
 		}
 
-		// If file data is of OBJ type and valid, proceed to extract geometry info
-		while (inf)
-		{
+	// If file data is of OBJ type and valid, proceed to extract geometry info
+	while (getline(inf, buffer)) {
 
-		// Check for 'v', 'vn' and f' lines
-		getline(inf, buffer);
-		stringstream ss(buffer);
+		// Read lines from file
+		istringstream ss(buffer);
 		Vector3f transferV;
-		vector<string> transferF; // outputting ss into transferF throws an exception
-		ss >> overflow;
-		string f1; // these three individual strings work, but why wtf???
-		string f2;
-		string f3;
+		vector<unsigned int> transferF;
+		vector<string> faceVector(3);
 
-		if (overflow == "v")
-			{
-				// Transfer vertex point info 'v' to 'vecv'
-				ss >> transferV[0] >> transferV[1] >> transferV[2];
-				vecv.push_back(transferV);
-			}
-			else if (overflow == "vn") {
-				// Transfer vertex normal info 'vn' to 'vecn'
-				ss >> transferV[0] >> transferV[1] >> transferV[2];
-				vecn.push_back(transferV);
-			}
-			else if (overflow == "f") {
-				// Transfer face info 'f' to 'vecf'
-				ss >> f1 >> f2 >> f3;
-				cout << f1 << f2 << f3 << endl;
-				// ss >> transferF[0] >> transferF[1] >> transferF[2];
-				// cout << "f: " << transferF[0] << " " << transferF[1] << " " << transferF[2] << endl;
-				// vecf.push_back(transferf);
-			}
+		// Break loop when end of file is reached
+		if (!(ss >> overflow))
+		{
+			cout << "End of file reached." << endl;
+			break;
 		}
 
+		// Extract info if line contains 'v', 'vn' and 'f' header
+		if (overflow == "v") {
+			// Transfer vertex point info 'v' to 'vecv'
+			ss >> transferV[0] >> transferV[1] >> transferV[2];
+			//cout << "v: " << transferV[0] << " " << transferV[1] << " " << transferV[2] << endl;
+			vecv.push_back(transferV);
+		}
+		else if (overflow == "vn") {
+			// Transfer vertex normal info 'vn' to 'vecn'
+			ss >> transferV[0] >> transferV[1] >> transferV[2];
+			//cout << "vn: " << transferV[0] << " " << transferV[1] << " " << transferV[2] << endl;
+			vecn.push_back(transferV);
+		}
+		else if (overflow == "f") {
+			// Transfer face info 'f' to 'vecf'
+			ss >> faceVector[0] >> faceVector[1] >> faceVector[2];
+			for (unsigned int i = 0; i < faceVector.size(); i++) {
+				istringstream iss(faceVector[i]);
+				string token;
+				while (getline(iss, token, '/'))
+				{
+					transferF.push_back(stoi(token));
+				}
+			}
+			vecf.push_back(transferF);
+			//cout << "f: " << transferF[0] << " " << transferF[1] << " " << transferF[2] << " " << transferF[3] << " " << transferF[4] << " " << transferF[5] << " " << transferF[6] << " " << transferF[7] << " " << transferF[8] << endl;
+		}
+	}
+	cout << "OBJ data loaded." << endl;
 }
 
-// Main routine.
-// Set up OpenGL, define the callbacks and start the main loop
+// MAIN ROUTINE - Set up OpenGL, define the callbacks and start the main loop
 int main( int argc, char** argv )
 {
+
+		// Ask for user input to render object
     loadInput();
 
     glutInit(&argc,argv);
@@ -290,7 +313,7 @@ int main( int argc, char** argv )
     // Initial parameters for window position and size
     glutInitWindowPosition( 60, 60 );
     glutInitWindowSize( 480, 480 );
-    glutCreateWindow("Assignment 0 - OpenGL Mesh Viewer");
+    glutCreateWindow("OpenGL Mesh Viewer");
 
     // Initialize OpenGL parameters.
     initRendering();
@@ -305,7 +328,7 @@ int main( int argc, char** argv )
     // Call this whenever window needs redrawing
     glutDisplayFunc( drawScene );
 
-    // Start the main loop.  glutMainLoop never returns.
+    // Start the main loop - glutMainLoop never returns.
     glutMainLoop( );
 
     return 0;	// This line is never reached.
