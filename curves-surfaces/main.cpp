@@ -40,7 +40,7 @@ namespace
     int  gSurfaceMode = 1;
     int  gPointMode = 1;
 
-    // This detemines how big to draw the normals
+    // This detemines how large to draw the normals
     const float gLineLen = 0.1f;
     
     // These are arrays for display lists for each drawing mode.  The
@@ -142,7 +142,7 @@ namespace
                 camera.MouseClick(Camera::RIGHT, x,y);
             default:
                 break;
-            }                       
+            }
         }
         else
         {
