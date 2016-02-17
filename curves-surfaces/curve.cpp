@@ -54,61 +54,42 @@ Curve evalBezier(const vector<Vector3f>& P, unsigned steps)
     // receive have G1 continuity.  Otherwise, the TNB will not be
     // be defined at points where this does not hold.
 
-    cerr << "\t>>> evalBezier has been called with the following input:" << endl;
+    cerr << "\t>>> evalBezier has been called" << endl;
     cerr << "\t>>> Control points (type vector< Vector3f >): " << endl;
-
-		unsigned ctrlPts = 4;
-
-		// Initialise control point coordinates Gx, Gy, Gz
-		vector<Vector3f> G;
-		Vector3f GVertex;
-    for( unsigned i = 0; i < ctrlPts; ++i ) {
-			GVertex[0] = P[i][0];
-			GVertex[1] = P[i][1];
-			GVertex[2] = P[i][2];
-			cout << "\t>>> CtrlPt " << i << ": [" << GVertex[0] << " " << GVertex[1] << " " << GVertex[2] << "]" << endl;
-			G.push_back(GVertex);
-    }
-
 		cerr << "\t>>> Bezier curve points (type vector< Vector3f >): " << endl;
 
-		// Compute curve coordinates Cx, Cy, Cz
-		Matrix4f B(Vector4f(-1, 3, -3, 1), Vector4f(3, -6, 3, 0), Vector4f(-3, 3, 0, 0), Vector4f(1, 0, 0, 0));
+		// Initialise G, C matrices
+		Matrix4f BCubic(Vector4f(-1, 3, -3, 1), Vector4f(3, -6, 3, 0), Vector4f(-3, 3, 0, 0), Vector4f(1, 0, 0, 0));
 		vector<Vector3f> C;
 		Vector3f CVertex;
-		//float tInterval = 0.1;
-		//float dt = 1 / (steps - 1);
-		for (unsigned i = 0; i < steps; ++i) {
-			float tInterval = 0 + i * (1 /(steps - 1));
-			Vector4f T(tInterval * tInterval * tInterval, tInterval * tInterval, tInterval, 1);
-			cout << "\t>>> i-value: " << i << endl;
-			cout << "\t>>> t-value: " << tInterval << endl;
-			cout << "\t>>> T-vector: [" << T[0] << " " << T[1] << " " << T[2] << "]" << endl;
-			// fuck this shit im outta here for now
 
-			//Vector4f BT(B * T);
-			//CVertex[0] = G[0][0] * BT[0] + G[1][0] * BT[1] + G[2][0] * BT[2] + G[3][0] * BT[3];
-			//CVertex[1] = G[0][1] * BT[0] + G[1][1] * BT[1] + G[2][1] * BT[2] + G[3][1] * BT[3];
-			//CVertex[2] = G[0][2] * BT[0] + G[1][2] * BT[1] + G[2][2] * BT[2] + G[3][2] * BT[3];
-			//tInterval += dt;
-			//cout << ">>> t-step: "  << tInterval << endl;
-			//C.push_back(CVertex);
-			//cout << "\t>>> CurvePt " << i << ": [" << C[i][0] << " " << C[i][1] << " " << C[i][2] << "]" << endl;
+		// Compute curve coordinates Cx, Cy, Cz
+		for (unsigned i = 0; i < steps; i++) {
+			float tInterval = i / (float(steps) - 1);
+			// for coordinate info
+			Vector4f TCubic(tInterval * tInterval * tInterval, tInterval * tInterval, tInterval, 1);
+			Vector4f BTCubic(BCubic * TCubic);
+
+			// coordinate info calc
+			CVertex[0] = P[0][0] * BTCubic[0] + P[1][0] * BTCubic[1] + P[2][0] * BTCubic[2] + P[3][0] * BTCubic[3];
+			CVertex[1] = P[0][1] * BTCubic[0] + P[1][1] * BTCubic[1] + P[2][1] * BTCubic[2] + P[3][1] * BTCubic[3];
+			CVertex[2] = P[0][2] * BTCubic[0] + P[1][2] * BTCubic[1] + P[2][2] * BTCubic[2] + P[3][2] * BTCubic[3];
+			C.push_back(CVertex);
+
+			//cout << "\t>>> t-value: " << tInterval << endl;
+			//cout << "\t>>> C-vector: [" << CVertex[0] << " " << CVertex[1] << " " << CVertex[2] << "]" << endl;
 		}
-
-		/*for (unsigned i = 0; i < steps; ++i) {
-			float t = 0 + i * (1 / (steps - 1));
-			Vector4f tVec(t * t * t, t * t, t, 1);
-
-			cout << ">>> i-value: " << i << endl;
-			cout << ">>> t-value: " << t << endl;
-			cout << ">>> T-vector: [" << tVec[0] << " " << tVec[1] << " " << tVec[2] << "]" << endl;
-		}*/
 
     cerr << "\t>>> Steps (type steps): " << steps << endl;
 
+		vector<CurvePoint> cpVector;
+		for (unsigned i = 0; i < steps; i++) {
+			struct CurvePoint cp = { C[i], Vector3f(1, 0, 0), Vector3f(0, 1, 0), Vector3f(0, 0, 1) };
+			cpVector.push_back(cp);
+		}
+
     // return and draw cubic bezier curve
-    return Curve(/* add parameters here */);
+    return Curve(cpVector);
 }
 
 Curve evalBspline( const vector< Vector3f >& P, unsigned steps )
@@ -126,18 +107,29 @@ Curve evalBspline( const vector< Vector3f >& P, unsigned steps )
     // your evalBezier function.
 
     cerr << "\t>>> evalBSpline has been called with the following input:" << endl;
+		cerr << "\t>>> Control points (type vector< Vector3f >): "<< endl;
 
-    cerr << "\t>>> Control points (type vector< Vector3f >): "<< endl;
-    for( unsigned i = 0; i < P.size(); ++i )
-    {
-        cerr << "\t>>> " << P[i] << endl;
+		
+		// Initialise bspline -> bezier control point coordinates Gx, Gy, Gz
+		Matrix4f B_Bezier(Vector4f(-1, 3, -3, 1), Vector4f(3, -6, 3, 0), Vector4f(-3, 3, 0, 0), Vector4f(1, 0, 0, 0));
+		Matrix4f B_Spline(Vector4f(-1, 3, -3, 1), Vector4f(3, -6, 0, 4), Vector4f(-3, 3, 3, 1), Vector4f(1, 0, 0, 0));
+		vector<Vector3f> G;
+		Vector3f GVertex;
+
+		Matrix4f B1B2_inv(((1.0 / 6.0) * B_Spline) * B_Bezier.inverse());
+    for( unsigned i = 0; i < P.size(); ++i ) {
+			cout << "\t>>> P-vector: [" << P[i][0] << " " << P[i][1] << " " << P[i][2] << "]" << endl;
+			GVertex[0] = P[0][0] * B1B2_inv(0, i) + P[1][0] * B1B2_inv(1, i) + P[2][0] * B1B2_inv(2, i) + P[3][0] * B1B2_inv(3, i);
+			GVertex[1] = P[0][1] * B1B2_inv(0, i) + P[1][1] * B1B2_inv(1, i) + P[2][1] * B1B2_inv(2, i) + P[3][1] * B1B2_inv(3, i);
+			GVertex[2] = P[0][2] * B1B2_inv(0, i) + P[1][2] * B1B2_inv(1, i) + P[2][2] * B1B2_inv(2, i) + P[3][2] * B1B2_inv(3, i);
+			cout << "\t>>> NewCtrlPt " << i << ": [" << GVertex[0] << " " << GVertex[1] << " " << GVertex[2] << "]" << endl;
+			G.push_back(GVertex);
     }
 
     cerr << "\t>>> Steps (type steps): " << steps << endl;
-    cerr << "\t>>> Returning empty curve." << endl;
 
-    // Return an empty curve right now.
-    return Curve();
+    // return and draw cubic b-spline
+    return evalBezier(G, steps);
 }
 
 Curve evalCircle( float radius, unsigned steps )
