@@ -112,20 +112,23 @@ Curve evalBspline( const vector< Vector3f >& P, unsigned steps )
 		
 		// Initialise bspline -> bezier control point coordinates Gx, Gy, Gz
 		Matrix4f B_Bezier(Vector4f(-1, 3, -3, 1), Vector4f(3, -6, 3, 0), Vector4f(-3, 3, 0, 0), Vector4f(1, 0, 0, 0));
-		Matrix4f B_Spline(Vector4f(-1, 3, -3, 1), Vector4f(3, -6, 0, 4), Vector4f(-3, 3, 3, 1), Vector4f(1, 0, 0, 0));
+		Matrix4f B_Spline(Vector4f(-1, 3, -3, 1), Vector4f(3, -6, 3, 0), Vector4f(-3, 0, 3, 0), Vector4f(1, 4, 1, 0));
+		//Matrix4f B_Bezier_inv(B_Bezier.inverse());
 		vector<Vector3f> G;
 		Vector3f GVertex;
 
-		Matrix4f B1B2_inv(((1.0 / 6.0) * B_Spline) * B_Bezier.inverse());
-    for( unsigned i = 0; i < P.size(); ++i ) {
+		//Matrix4f B1B2_inv((1.0/6.0) * B_Spline * B_Bezier_inv);
+		Matrix4f B1B2_inv(Vector4f(0, 1.0/6.0, 2.0/3.0, 1.0/6.0), Vector4f(0, 1.0/3.0, 2.0/3.0, 0), Vector4f(0, 2.0/3.0, 1.0/3.0, 0), Vector4f(1.0/6.0, 2.0/3.0, 1.0/6.0, 0));
+		//G = P * B1B2_inv;
+		for (unsigned i = 0; i < P.size(); ++i) {
 			cout << "\t>>> P-vector: [" << P[i][0] << " " << P[i][1] << " " << P[i][2] << "]" << endl;
+			//cout << "\t>>> P-vector: [" << B1B2_inv(0, i) << " " << B1B2_inv(1, i) << " " << B1B2_inv(2, i) << " " << B1B2_inv(3, i) << "]" << endl;
 			GVertex[0] = P[0][0] * B1B2_inv(0, i) + P[1][0] * B1B2_inv(1, i) + P[2][0] * B1B2_inv(2, i) + P[3][0] * B1B2_inv(3, i);
 			GVertex[1] = P[0][1] * B1B2_inv(0, i) + P[1][1] * B1B2_inv(1, i) + P[2][1] * B1B2_inv(2, i) + P[3][1] * B1B2_inv(3, i);
 			GVertex[2] = P[0][2] * B1B2_inv(0, i) + P[1][2] * B1B2_inv(1, i) + P[2][2] * B1B2_inv(2, i) + P[3][2] * B1B2_inv(3, i);
-			cout << "\t>>> NewCtrlPt " << i << ": [" << GVertex[0] << " " << GVertex[1] << " " << GVertex[2] << "]" << endl;
+			cout << "\t>>> NewCtrlPt " << i << ": [" << GVertex[0] << " " << GVertex[1] << " " << GVertex[2] << "]" << endl; 
 			G.push_back(GVertex);
-    }
-
+		}
     cerr << "\t>>> Steps (type steps): " << steps << endl;
 
     // return and draw cubic b-spline
